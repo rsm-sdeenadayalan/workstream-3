@@ -25,8 +25,20 @@ python run_cldv.py --only si2      # ILOSTAT labor market       (no key, ~30s)
 python run_cldv.py --only si1      # transcript NLP + headcount (Tavily; long)
 python run_cldv.py --only scoring  # normalize + composite CLDV
 python run_cldv.py --only gap      # open-gap report
+python run_cldv.py --only verify   # QA gate (weights, provenance, coverage, outliers)
 python run_cldv.py                 # full pipeline
 ```
+
+## QA and validation
+```bash
+python cldv/cldv_verify.py                      # integrity gate; exits 1 on failure (CI uses this)
+python cldv/cldv_si1_validate.py agree          # automated keyword-vs-Claude agreement
+python cldv/cldv_si1_validate.py export rv.csv  # export reviewer pack for the 2-reviewer pass
+python cldv/cldv_si1_validate.py ingest rv.csv  # concordance after reviewers fill human_label
+```
+`cldv_verify` FAILs (exit 1) on structural problems (weights not summing to 1,
+scores out of range, missing provenance) and WARNs on data-quality signals
+(coverage gaps, YoY outliers). CI runs `pytest tests/` on every push.
 `--quarters N` controls how many recent quarters SI1 collects (default 8). A full
 SI1 run is roughly 4 searches x 37 companies x N quarters - size N to your Tavily
 budget.

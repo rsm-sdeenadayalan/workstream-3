@@ -38,7 +38,7 @@ def _print_final(conn):
 def main():
     ap = argparse.ArgumentParser(description="CLDV pipeline")
     ap.add_argument("--only", choices=["si1", "si1-score", "si1-llm", "si2",
-                                       "si3", "scoring", "gap"],
+                                       "si3", "scoring", "gap", "verify"],
                     help="run a single phase")
     ap.add_argument("--quarters", type=int, default=8,
                     help="SI1: number of recent quarters to collect (newest first)")
@@ -47,6 +47,11 @@ def main():
     if args.only == "gap":
         print_gap_report()
         return
+
+    if args.only == "verify":
+        import sys as _sys
+        from cldv_verify import run_verify
+        _sys.exit(run_verify())
 
     conn = get_conn()
     run_id = str(uuid.uuid4())

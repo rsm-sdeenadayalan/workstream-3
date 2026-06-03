@@ -19,6 +19,7 @@ Public entry point: run_si2(conn, run_id) -> (succeeded, failed, gaps)
 """
 import csv
 import io
+import time
 
 import requests
 
@@ -38,10 +39,22 @@ def _ilo_url(iso3, timefrom=2017):
 
 
 def ilostat_occupation(iso3):
-    """Return ({classif1: {year: value_thousands}}, url) for SEX_T."""
+    """Return ({classif1: {year: value_thousands}}, url) for SEX_T. Retries on
+    transient HTTP errors with capped exponential back-off."""
     url = _ilo_url(iso3)
-    r = requests.get(url, headers=_UA, timeout=45)
-    r.raise_for_status()
+    r = None
+    for attempt in range(4):
+        try:
+            r = requests.get(url, headers=_UA, timeout=45)
+            if r.status_code == 200:
+                break
+            time.sleep(min(2 ** attempt, 8))
+        except requests.RequestException:
+            if attempt == 3:
+                raise
+            time.sleep(min(2 ** attempt, 8))
+    if r is None or r.status_code != 200:
+        raise RuntimeError(f"ILOSTAT fetch failed for {iso3}")
     out = {}
     for row in csv.DictReader(io.StringIO(r.text)):
         if row.get("sex") != "SEX_T":

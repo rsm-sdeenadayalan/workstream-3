@@ -14,6 +14,7 @@ import json
 import os
 import re
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from cldv_db import get_conn
@@ -78,27 +79,48 @@ def score_with_claude(client, company, quarter, text):
     ex = relevant_excerpts(text)
     if len(ex) < 200:
         return None
-    r = client.messages.create(
-        model=MODEL, max_tokens=400,
-        messages=[{"role": "user",
-                   "content": _PROMPT.format(company=company, quarter=quarter,
-                                             excerpts=ex)}])
-    return _parse(r.content[0].text)
+    # temperature=0 for maximum determinism; retry on transient/rate-limit errors.
+    last = None
+    for attempt in range(4):
+        try:
+            r = client.messages.create(
+                model=MODEL, max_tokens=400, temperature=0,
+                messages=[{"role": "user",
+                           "content": _PROMPT.format(company=company, quarter=quarter,
+                                                     excerpts=ex)}])
+            return _parse(r.content[0].text)
+        except Exception as e:                       # rate limit / transient
+            last = e
+            if attempt == 3:
+                break
+            time.sleep(min(2 ** attempt, 10))
+    raise last if last else RuntimeError("claude scoring failed")
 
 
-def run_llm_scoring(conn, run_id: str) -> int:
+def run_llm_scoring(conn, run_id: str, force: bool = False) -> int:
+    """Score transcripts with Claude. By default CACHES - only transcripts
+    without an llm_score are (re)scored, so re-runs are cheap and the stored
+    scores are stable. Set force=True (or CLDV_LLM_FORCE=1) to re-score all."""
     if not (_KEY and anthropic):
         print("[SI1-LLM] no Anthropic key/SDK - keeping keyword scores")
         return 0
+    force = force or os.environ.get("CLDV_LLM_FORCE", "").lower() in ("1", "true", "yes")
     with conn.cursor() as cur:
-        cur.execute("SELECT company, quarter, transcript_text FROM cldv_transcripts "
-                    "WHERE transcript_text IS NOT NULL")
+        cur.execute(
+            "SELECT t.company, t.quarter, t.transcript_text "
+            "FROM cldv_transcripts t "
+            "LEFT JOIN cldv_si1_company_scores s "
+            "  ON s.company = t.company AND s.quarter = t.quarter "
+            "WHERE t.transcript_text IS NOT NULL "
+            "  AND (%s OR s.llm_score IS NULL)", (force,))
         rows = cur.fetchall()
     if not rows:
+        print("[SI1-LLM] all transcripts already scored (cached) - nothing to do")
         return 0
     client = anthropic.Anthropic(api_key=_KEY)
     lock = threading.Lock()
     done = [0]
+    failed = [0]
 
     def _one(company, quarter, text):
         cconn = get_conn()
@@ -114,15 +136,17 @@ def run_llm_scoring(conn, run_id: str) -> int:
                 cconn.commit()
                 with lock:
                     done[0] += 1
-        except Exception:
-            pass
+        except Exception as e:
+            with lock:
+                failed[0] += 1
+            print(f"  [SI1-LLM] FAILED {company} {quarter}: {type(e).__name__}")
         finally:
             cconn.close()
 
     print(f"[SI1-LLM] scoring {len(rows)} transcripts with {MODEL} "
-          f"({_MAX_WORKERS} workers)...")
+          f"(temp=0, {_MAX_WORKERS} workers, cached)...")
     with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as ex:
         for _ in as_completed([ex.submit(_one, c, q, t) for c, q, t in rows]):
             pass
-    print(f"[SI1-LLM] contextual score + summary for {done[0]}/{len(rows)} transcripts")
+    print(f"[SI1-LLM] scored {done[0]}/{len(rows)} ({failed[0]} failed) with {MODEL}")
     return done[0]
