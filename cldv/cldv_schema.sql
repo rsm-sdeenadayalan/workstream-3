@@ -81,6 +81,11 @@ CREATE TABLE IF NOT EXISTS cldv_si1_company_scores (
     PRIMARY KEY (company, quarter)
 );
 ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS source_url TEXT;
+-- Claude contextual score (PRIMARY signal) + summary; keyword proxy_score kept
+-- as a reproducible cross-check.
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_score NUMERIC;
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_ai_attributed BOOLEAN;
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_summary TEXT;
 
 -- Latest reported employee headcount per company — dated + sourced (used as the
 -- employment weight for SI1 country aggregation).

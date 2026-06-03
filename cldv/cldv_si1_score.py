@@ -110,10 +110,12 @@ def velocity_for_country(qmap):
 
 
 def _country_quarter_aggregates(conn):
+    # PRIMARY signal = Claude contextual score when available, else keyword proxy.
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT country_iso, quarter, proxy_score, strict_score, employees "
-            "FROM cldv_si1_company_scores WHERE proxy_score IS NOT NULL"
+            "SELECT country_iso, quarter, COALESCE(llm_score, proxy_score), "
+            "strict_score, employees FROM cldv_si1_company_scores "
+            "WHERE COALESCE(llm_score, proxy_score) IS NOT NULL"
         )
         rows = cur.fetchall()
     return aggregate_rows(rows)

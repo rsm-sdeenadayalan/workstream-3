@@ -41,23 +41,32 @@ tokens in the header + frequency) and the **right quarter**; the longest,
 most-authoritative quarter-matched transcript wins. Stored in `cldv_transcripts`
 with its working URL.
 
-### Scoring - two-track NLP (deterministic)
-Real calls (especially banks) express displacement as "efficiency" without
-naming AI, so two scores are computed per transcript:
+### Scoring - Claude contextual (primary) + keyword (cross-check)
+Keyword counting tallies phrases but cannot read context - whether "efficiency"
+is AI-driven displacement vs routine cost control, augmentation vs replacement,
+or merely an analyst's question. So scoring is two-tier:
 
-- **proxy_score (primary)** - efficiency / headcount-reduction language,
-  amplified when AI/automation terms co-occur in the call.
-- **strict_score (cross-check)** - displacement counted only when AI is
-  explicitly attributed.
+1. **Claude contextual score (PRIMARY).** The AI/labor-relevant excerpts of each
+   transcript are sent to Claude (`claude-sonnet-4-6`), which returns a
+   displacement score in [-1, +1], whether the signal is explicitly AI-attributed,
+   and a 1-2 sentence summary of the company's AI-labor stance. This is the value
+   used in aggregation and is stored with each per-company-quarter row
+   (`llm_score`, `llm_summary`). Example - Grab: *"AI/automation enabling
+   reduction in operations headcount"* (+0.6); Salesforce: *"Agentforce as
+   'digital labor' replacing cognitive tasks"* (+0.55).
 
-Both use the spec formula, with TF-IDF weighting across the corpus:
-```
-displacement_score = tanh( (displacement_density - augmentation_density)
-                           x investment_to_hiring_ratio x ai_context / k )    in  [-1, +1]
-```
-Densities are per-1,000-words over four keyword categories (displacement,
-augmentation, investment, hiring); negated hits are discounted. The versioned
-dictionary lives in `cldv_si1_dictionary.py` and is expanded during validation.
+2. **Keyword / TF-IDF score (reproducible cross-check / fallback).** A
+   deterministic two-track score (proxy = efficiency + AI co-occurrence; strict =
+   AI-attributed only), TF-IDF-weighted across the corpus:
+   ```
+   score = tanh( (displacement_density - augmentation_density)
+                 x investment_to_hiring_ratio x ai_context / k )   in [-1, +1]
+   ```
+   Used when no LLM key is configured, and retained for auditability. The
+   versioned dictionary lives in `cldv_si1_dictionary.py`.
+
+Aggregation uses `COALESCE(llm_score, proxy_score)` so the contextual score
+drives the result, with graceful fallback to the deterministic baseline.
 
 ### Aggregation
 Company scores are aggregated to country level **weighted by employee headcount**,
@@ -162,6 +171,7 @@ are reproducible via `run_id -> cldv_raw_metrics -> source URLs`.
 | Sub-index | Source | Key? | Latency |
 |---|---|---|---|
 | SI1 transcripts | Company IR / Morningstar / Motley Fool / Insider Monkey | no | days |
+| SI1 scoring | Anthropic Claude (contextual score + summary); keyword fallback | yes (Anthropic) | n/a |
 | SI1 headcount | SEC EDGAR 10-K/20-F (primary); web aggregators (fallback) | no | annual filing |
 | SI2 | ILOSTAT EMP_TEMP_SEX_OCU_NB (ISCO-08) | no | ~annual |
 | SI3 | World Bank WDI (BX.GSR.NFSV.CD, NY.GDP.MKTP.CD, SP.POP.TOTL, BX.GSR.CMCP.ZS, BM.GSR.NFSV.CD) | no | ~1 year |
