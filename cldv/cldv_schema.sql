@@ -234,3 +234,13 @@ INSERT INTO cldv_score_methodology (sub_index, metric_key, metric_label, weight,
 ON CONFLICT (sub_index, metric_key) DO UPDATE
     SET metric_label = EXCLUDED.metric_label, weight = EXCLUDED.weight,
         invert = EXCLUDED.invert, scored = EXCLUDED.scored;
+
+-- ── Seed: SI2 methodology (crossover ratio rate-of-change is the scored signal) ─
+INSERT INTO cldv_score_methodology (sub_index, metric_key, metric_label, weight, invert, scored) VALUES
+    ('SI2', 'crossover_ratio_yoy', 'Cognitive/AI-adjacent crossover ratio, YoY % (falling=displacement)', 1.00, TRUE,  TRUE),
+    ('SI2', 'crossover_ratio',     'Cognitive(ISCO4)/AI-adjacent(ISCO2) employment ratio',                0.00, FALSE, FALSE),
+    ('SI2', 'cognitive_labor_yoy', 'Clerical/cognitive (ISCO-4) employment YoY %',                        0.00, FALSE, FALSE),
+    ('SI2', 'ai_adjacent_yoy',     'AI-adjacent professionals (ISCO-2) employment YoY %',                 0.00, FALSE, FALSE)
+ON CONFLICT (sub_index, metric_key) DO UPDATE
+    SET metric_label = EXCLUDED.metric_label, weight = EXCLUDED.weight,
+        invert = EXCLUDED.invert, scored = EXCLUDED.scored;

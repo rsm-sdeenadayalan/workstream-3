@@ -69,7 +69,9 @@ def main():
         print(f"[SI1] {res}")
 
     if args.only in (None, "si2"):
-        print("[SI2] labor-market signal — not yet implemented (Phase 3).")
+        from cldv_si2_collectors import run_si2
+        s, f, g = run_si2(conn, run_id)
+        total += s + f; succ += s; fail += f; gaps += g
 
     if args.only in (None, "scoring"):
         run_scoring(conn, run_id)
