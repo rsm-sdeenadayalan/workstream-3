@@ -8,12 +8,13 @@ WS1 (SDI) and WS2 (CII).
 
 | Sub-index | Signal | Status |
 |---|---|---|
-| **SI1** (40%) | Corporate Displacement — NLP on earnings-call transcripts | ⏳ Phase 2 |
-| **SI2** (35%) | Labor Market — job-posting "crossover ratio" + headcount/rev-per-employee | ⏳ Phase 3 |
-| **SI3** (25%) | Services Trade Flow — World Bank services-export trends | ✅ implemented |
+| **SI1** (40%) | Corporate Displacement - NLP on earnings-call transcripts | implemented; US data (full collection pending) |
+| **SI2** (35%) | Labor Market - ILOSTAT cognitive/AI-adjacent crossover ratio | implemented (all 6 countries) |
+| **SI3** (25%) | Services Trade Flow - World Bank services-export trends | implemented (all 6 countries) |
 
-> CLDV is **provisional** until SI1 + SI2 are populated (the scorer reports which
-> sub-indices are present and excludes missing ones from the weighted sum).
+Note: CLDV is reported **provisional** for any country missing a sub-index (the
+scorer lists which sub-indices are present and excludes missing ones from the
+weighted sum rather than redistributing weight).
 
 ## Setup
 ```bash
