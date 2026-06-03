@@ -21,38 +21,38 @@ PLAT = "fintech_platform"
 
 COMPANIES = [
     # ── United States ────────────────────────────────────────────────────────
-    {"company": "JPMorgan Chase", "country_iso": "US", "sector": FIN,  "us_ticker": "JPM",   "exchange": "NYSE"},
-    {"company": "Goldman Sachs",  "country_iso": "US", "sector": FIN,  "us_ticker": "GS",    "exchange": "NYSE"},
-    {"company": "Citigroup",      "country_iso": "US", "sector": FIN,  "us_ticker": "C",     "exchange": "NYSE"},
-    {"company": "Microsoft",      "country_iso": "US", "sector": TECH, "us_ticker": "MSFT",  "exchange": "NASDAQ"},
-    {"company": "Alphabet",       "country_iso": "US", "sector": TECH, "us_ticker": "GOOGL", "exchange": "NASDAQ"},
-    {"company": "Amazon",         "country_iso": "US", "sector": TECH, "us_ticker": "AMZN",  "exchange": "NASDAQ"},
-    {"company": "Meta Platforms", "country_iso": "US", "sector": TECH, "us_ticker": "META",  "exchange": "NASDAQ"},
-    {"company": "Salesforce",     "country_iso": "US", "sector": TECH, "us_ticker": "CRM",   "exchange": "NYSE"},
-    {"company": "Accenture",      "country_iso": "US", "sector": ITS,  "us_ticker": "ACN",   "exchange": "NYSE"},
-    {"company": "IBM",            "country_iso": "US", "sector": TECH, "us_ticker": "IBM",   "exchange": "NYSE"},
+    {"company": "JPMorgan Chase", "country_iso": "US", "sector": FIN,  "us_ticker": "JPM",   "exchange": "NYSE",   "ir_domain": "jpmorganchase.com"},
+    {"company": "Goldman Sachs",  "country_iso": "US", "sector": FIN,  "us_ticker": "GS",    "exchange": "NYSE",   "ir_domain": "goldmansachs.com"},
+    {"company": "Citigroup",      "country_iso": "US", "sector": FIN,  "us_ticker": "C",     "exchange": "NYSE",   "ir_domain": "citigroup.com"},
+    {"company": "Microsoft",      "country_iso": "US", "sector": TECH, "us_ticker": "MSFT",  "exchange": "NASDAQ", "ir_domain": "microsoft.com"},
+    {"company": "Alphabet",       "country_iso": "US", "sector": TECH, "us_ticker": "GOOGL", "exchange": "NASDAQ", "ir_domain": "abc.xyz"},
+    {"company": "Amazon",         "country_iso": "US", "sector": TECH, "us_ticker": "AMZN",  "exchange": "NASDAQ", "ir_domain": "aboutamazon.com"},
+    {"company": "Meta Platforms", "country_iso": "US", "sector": TECH, "us_ticker": "META",  "exchange": "NASDAQ", "ir_domain": "investor.atmeta.com"},
+    {"company": "Salesforce",     "country_iso": "US", "sector": TECH, "us_ticker": "CRM",   "exchange": "NYSE",   "ir_domain": "salesforce.com"},
+    {"company": "Accenture",      "country_iso": "US", "sector": ITS,  "us_ticker": "ACN",   "exchange": "NYSE",   "ir_domain": "accenture.com"},
+    {"company": "IBM",            "country_iso": "US", "sector": TECH, "us_ticker": "IBM",   "exchange": "NYSE",   "ir_domain": "ibm.com"},
 
     # ── India ────────────────────────────────────────────────────────────────
-    {"company": "Infosys",        "country_iso": "IN", "sector": ITS, "us_ticker": "INFY", "exchange": "NSE/NYSE"},
-    {"company": "Wipro",          "country_iso": "IN", "sector": ITS, "us_ticker": "WIT",  "exchange": "NSE/NYSE"},
+    {"company": "Infosys",        "country_iso": "IN", "sector": ITS, "us_ticker": "INFY", "exchange": "NSE/NYSE", "ir_domain": "infosys.com"},
+    {"company": "Wipro",          "country_iso": "IN", "sector": ITS, "us_ticker": "WIT",  "exchange": "NSE/NYSE", "ir_domain": "wipro.com"},
     {"company": "Tata Consultancy Services", "country_iso": "IN", "sector": ITS, "us_ticker": None, "exchange": "NSE", "ir_domain": "tcs.com"},
     {"company": "HCLTech",        "country_iso": "IN", "sector": ITS, "us_ticker": None, "exchange": "NSE", "ir_domain": "hcltech.com"},
     {"company": "Tech Mahindra",  "country_iso": "IN", "sector": ITS, "us_ticker": None, "exchange": "NSE", "ir_domain": "techmahindra.com"},
-    {"company": "Cognizant",      "country_iso": "IN", "sector": ITS, "us_ticker": "CTSH", "exchange": "NASDAQ"},
-    {"company": "Genpact",        "country_iso": "IN", "sector": BPO, "us_ticker": "G",    "exchange": "NYSE"},
-    {"company": "WNS Holdings",   "country_iso": "IN", "sector": BPO, "us_ticker": "WNS",  "exchange": "NYSE"},
-    {"company": "EXL Service",    "country_iso": "IN", "sector": BPO, "us_ticker": "EXLS", "exchange": "NASDAQ"},
+    {"company": "Cognizant",      "country_iso": "IN", "sector": ITS, "us_ticker": "CTSH", "exchange": "NASDAQ", "ir_domain": "cognizant.com"},
+    {"company": "Genpact",        "country_iso": "IN", "sector": BPO, "us_ticker": "G",    "exchange": "NYSE",   "ir_domain": "genpact.com"},
+    {"company": "WNS Holdings",   "country_iso": "IN", "sector": BPO, "us_ticker": "WNS",  "exchange": "NYSE",   "ir_domain": "wns.com"},
+    {"company": "EXL Service",    "country_iso": "IN", "sector": BPO, "us_ticker": "EXLS", "exchange": "NASDAQ", "ir_domain": "exlservice.com"},
 
     # ── Singapore ────────────────────────────────────────────────────────────
     {"company": "DBS Group",      "country_iso": "SG", "sector": FIN,  "us_ticker": None, "exchange": "SGX", "ir_domain": "dbs.com"},
     {"company": "OCBC",           "country_iso": "SG", "sector": FIN,  "us_ticker": None, "exchange": "SGX", "ir_domain": "ocbc.com"},
     {"company": "UOB",            "country_iso": "SG", "sector": FIN,  "us_ticker": None, "exchange": "SGX", "ir_domain": "uobgroup.com"},
-    {"company": "Grab Holdings",  "country_iso": "SG", "sector": PLAT, "us_ticker": "GRAB", "exchange": "NASDAQ"},
-    {"company": "Sea Limited",    "country_iso": "SG", "sector": PLAT, "us_ticker": "SE",   "exchange": "NYSE"},
+    {"company": "Grab Holdings",  "country_iso": "SG", "sector": PLAT, "us_ticker": "GRAB", "exchange": "NASDAQ", "ir_domain": "grab.com"},
+    {"company": "Sea Limited",    "country_iso": "SG", "sector": PLAT, "us_ticker": "SE",   "exchange": "NYSE",   "ir_domain": "seagroup.com"},
 
     # ── Philippines ──────────────────────────────────────────────────────────
-    {"company": "Concentrix",     "country_iso": "PH", "sector": BPO, "us_ticker": "CNXC", "exchange": "NASDAQ"},
-    {"company": "TaskUs",         "country_iso": "PH", "sector": BPO, "us_ticker": "TASK", "exchange": "NASDAQ"},
+    {"company": "Concentrix",     "country_iso": "PH", "sector": BPO, "us_ticker": "CNXC", "exchange": "NASDAQ", "ir_domain": "concentrix.com"},
+    {"company": "TaskUs",         "country_iso": "PH", "sector": BPO, "us_ticker": "TASK", "exchange": "NASDAQ", "ir_domain": "taskus.com"},
     {"company": "Teleperformance","country_iso": "PH", "sector": BPO, "us_ticker": None, "exchange": "Euronext Paris", "ir_domain": "teleperformance.com"},
     {"company": "Accenture Philippines", "country_iso": "PH", "sector": ITS, "us_ticker": None,
      "status": "drop", "reason": "not separable from global Accenture (ACN) reporting"},
@@ -65,11 +65,11 @@ COMPANIES = [
      "status": "substitute", "reason": "diffuse holding co — substitute a listed proxy or drop; no single earnings call"},
 
     # ── Brazil ───────────────────────────────────────────────────────────────
-    {"company": "Itaú Unibanco",  "country_iso": "BR", "sector": FIN,  "us_ticker": "ITUB", "exchange": "B3/NYSE"},
-    {"company": "Bradesco",       "country_iso": "BR", "sector": FIN,  "us_ticker": "BBD",  "exchange": "B3/NYSE"},
-    {"company": "Nubank",         "country_iso": "BR", "sector": PLAT, "us_ticker": "NU",   "exchange": "NYSE"},
+    {"company": "Itaú Unibanco",  "country_iso": "BR", "sector": FIN,  "us_ticker": "ITUB", "exchange": "B3/NYSE", "ir_domain": "itau.com.br"},
+    {"company": "Bradesco",       "country_iso": "BR", "sector": FIN,  "us_ticker": "BBD",  "exchange": "B3/NYSE", "ir_domain": "bradesco.com.br"},
+    {"company": "Nubank",         "country_iso": "BR", "sector": PLAT, "us_ticker": "NU",   "exchange": "NYSE",    "ir_domain": "nu.com.br"},
     {"company": "TOTVS",          "country_iso": "BR", "sector": ITS,  "us_ticker": None, "exchange": "B3", "ir_domain": "totvs.com"},
-    {"company": "CI&T",           "country_iso": "BR", "sector": ITS,  "us_ticker": "CINT", "exchange": "NYSE"},
+    {"company": "CI&T",           "country_iso": "BR", "sector": ITS,  "us_ticker": "CINT", "exchange": "NYSE", "ir_domain": "ciandt.com"},
 ]
 
 
