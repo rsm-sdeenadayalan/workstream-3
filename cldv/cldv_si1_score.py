@@ -13,6 +13,7 @@ from datetime import date
 from cldv_db import (COUNTRIES, CONFIDENCE, make_metric_result,
                      store_metric_datapoint, open_gap)
 from cldv_si1_companies import employees_for
+from cldv_si1_headcount import latest_employees
 from cldv_si1_nlp import score_corpus
 
 _Q_END = {1: (3, 31), 2: (6, 30), 3: (9, 30), 4: (12, 31)}
@@ -49,6 +50,7 @@ def score_transcripts(conn, run_id: str) -> int:
 
     docs = [r[4] for r in rows]
     scored = score_corpus(docs)            # TF-IDF proxy across the whole corpus
+    emp_map = latest_employees(conn)       # dated, sourced headcounts (fallback: static)
 
     with conn.cursor() as cur:
         for (company, iso, sector, quarter, _txt, sname, surl), s in zip(rows, scored):
@@ -66,7 +68,7 @@ def score_transcripts(conn, run_id: str) -> int:
                 """,
                 (company, iso, sector, quarter, s.get("word_count"),
                  s.get("ai_density"), s.get("proxy_score"), s.get("strict_score"),
-                 employees_for(company), sname, surl, run_id),
+                 emp_map.get(company) or employees_for(company), sname, surl, run_id),
             )
     conn.commit()
     print(f"[SI1] scored {len(rows)} transcripts")

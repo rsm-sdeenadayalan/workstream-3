@@ -82,6 +82,19 @@ CREATE TABLE IF NOT EXISTS cldv_si1_company_scores (
 );
 ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS source_url TEXT;
 
+-- Latest reported employee headcount per company — dated + sourced (used as the
+-- employment weight for SI1 country aggregation).
+CREATE TABLE IF NOT EXISTS cldv_si1_headcount (
+    company      TEXT PRIMARY KEY,
+    country_iso  TEXT,
+    employees    INTEGER,
+    as_of_date   DATE,
+    source_name  TEXT,
+    source_url   TEXT,
+    run_id       TEXT,
+    collected_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── Operational: runs, attempt log, gaps ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS cldv_runs (
     run_id       TEXT PRIMARY KEY,
