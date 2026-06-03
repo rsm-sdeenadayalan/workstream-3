@@ -1,10 +1,10 @@
-# Gramercy WS3 — CLDV (Cognitive Labor Displacement Velocity)
+# Gramercy WS3 - CLDV (Cognitive Labor Displacement Velocity)
 
 Measures, by country, the velocity at which AI is displacing cognitive labor across
 6 countries (US, AE, BR, IN, SG, PH). Third index in the Gramercy capstone, alongside
 WS1 (SDI) and WS2 (CII).
 
-**CLDV = 0.40·SI1 + 0.35·SI2 + 0.25·SI3**
+**CLDV = 0.40*SI1 + 0.35*SI2 + 0.25*SI3**
 
 | Sub-index | Signal | Status |
 |---|---|---|
@@ -33,13 +33,14 @@ python run_cldv.py --only gap   # open-gap report
 ```
 
 ## Data sources (free only)
-- **SI3:** World Bank WDI API (no key) — services exports, GDP, population, ICT-services
+- **SI3:** World Bank WDI API (no key) - services exports, GDP, population, ICT-services
   share, services imports. Scored metric: currency-adjusted YoY change in services
-  exports per capita (declining → higher displacement).
-- **SI1:** earnings-call transcripts via Motley Fool / SEC EDGAR (US-listed) + company IR
-  sites (EM), research-agent fallback; deterministic keyword/TF-IDF NLP.
-- **SI2:** Adzuna + ILOSTAT + Google Trends + Oxford Online Labour Index (constructed
-  crossover-ratio proxy — documented limitations).
+  exports per capita (declining -> higher displacement).
+- **SI1:** earnings-call transcripts via company IR PDFs (primary) + aggregators
+  (Morningstar/Motley Fool/Insider Monkey); employee weights from SEC 10-K/20-F
+  filings; deterministic two-track keyword/TF-IDF NLP.
+- **SI2:** ILOSTAT employment-by-occupation (ISCO-08) cognitive(ISCO4)/AI-adjacent
+  (ISCO2) crossover ratio - employment-stock proxy, documented limitations.
 
 ## Layout
 ```
