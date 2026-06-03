@@ -63,6 +63,23 @@ CREATE TABLE IF NOT EXISTS cldv_transcripts (
     UNIQUE (company, quarter)
 );
 
+-- ── SI1 derived: per-company-quarter NLP scores ─────────────────────────────
+CREATE TABLE IF NOT EXISTS cldv_si1_company_scores (
+    company         TEXT NOT NULL,
+    country_iso     TEXT NOT NULL,
+    sector          TEXT,
+    quarter         TEXT NOT NULL,
+    word_count      INTEGER,
+    ai_density      NUMERIC,
+    proxy_score     NUMERIC,                  -- −1..+1 (PRIMARY: efficiency+AI)
+    strict_score    NUMERIC,                  -- −1..+1 (AI-attributed only)
+    employees       INTEGER,                  -- weight for country aggregation
+    source_name     TEXT,
+    run_id          TEXT,
+    scored_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (company, quarter)
+);
+
 -- ── Operational: runs, attempt log, gaps ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS cldv_runs (
     run_id       TEXT PRIMARY KEY,
@@ -178,6 +195,15 @@ INSERT INTO cldv_score_methodology (sub_index, metric_key, metric_label, weight,
     ('SI3', 'services_exports_pct_gdp',        'Services exports (% of GDP)',                0.00, FALSE, FALSE),
     ('SI3', 'it_bpo_export_growth_yoy',        'IT/BPO services export growth (YoY %)',      0.00, FALSE, FALSE),
     ('SI3', 'current_account_services_balance','Current-account services balance (USD)',     0.00, FALSE, FALSE)
+ON CONFLICT (sub_index, metric_key) DO UPDATE
+    SET metric_label = EXCLUDED.metric_label, weight = EXCLUDED.weight,
+        invert = EXCLUDED.invert, scored = EXCLUDED.scored;
+
+-- ── Seed: SI1 methodology (velocity = QoQ change is the scored signal) ───────
+INSERT INTO cldv_score_methodology (sub_index, metric_key, metric_label, weight, invert, scored) VALUES
+    ('SI1', 'corporate_displacement_velocity', 'Corporate displacement velocity (QoQ Δ, employment-weighted)', 1.00, FALSE, TRUE),
+    ('SI1', 'corporate_displacement_level',    'Corporate displacement level (latest quarter, proxy)',         0.00, FALSE, FALSE),
+    ('SI1', 'corporate_displacement_strict',   'Strict AI-attributed displacement level (latest quarter)',     0.00, FALSE, FALSE)
 ON CONFLICT (sub_index, metric_key) DO UPDATE
     SET metric_label = EXCLUDED.metric_label, weight = EXCLUDED.weight,
         invert = EXCLUDED.invert, scored = EXCLUDED.scored;

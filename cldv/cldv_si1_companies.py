@@ -73,9 +73,35 @@ COMPANIES = [
 ]
 
 
+# Approximate global headcount (public figures, ~2024-25) used for the
+# employment-weighted country aggregation the spec requires. Relative weights
+# within a country are what matter, so approximate counts are adequate; refine
+# from filings during validation. Global BPO counts (Concentrix/Teleperformance)
+# are global totals — a documented approximation.
+EMPLOYEES = {
+    "JPMorgan Chase": 310000, "Goldman Sachs": 46000, "Citigroup": 229000,
+    "Microsoft": 228000, "Alphabet": 183000, "Amazon": 1550000,
+    "Meta Platforms": 67000, "Salesforce": 73000, "Accenture": 774000, "IBM": 282000,
+    "Infosys": 317000, "Wipro": 234000, "Tata Consultancy Services": 607000,
+    "HCLTech": 219000, "Tech Mahindra": 148000, "Cognizant": 336000,
+    "Genpact": 125000, "WNS Holdings": 60000, "EXL Service": 55000,
+    "DBS Group": 36000, "OCBC": 30000, "UOB": 26000, "Grab Holdings": 11000,
+    "Sea Limited": 67000,
+    "Concentrix": 440000, "TaskUs": 60000, "Teleperformance": 490000,
+    "Emirates NBD": 28000, "First Abu Dhabi Bank": 10000, "e& (Etisalat)": 50000,
+    "Itaú Unibanco": 100000, "Bradesco": 85000, "Nubank": 8000,
+    "TOTVS": 14000, "CI&T": 7000,
+}
+
+
 def active_companies():
     """Companies we will actually collect (excludes 'drop')."""
     return [c for c in COMPANIES if c.get("status") != "drop"]
+
+
+def employees_for(company) -> int:
+    name = company["company"] if isinstance(company, dict) else company
+    return EMPLOYEES.get(name, 0)
 
 
 def us_listed(c) -> bool:

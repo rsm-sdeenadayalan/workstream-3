@@ -14,6 +14,8 @@ from cldv_si3_collectors import run_si3
 from cldv_scoring import run_scoring
 from cldv_gap_report import print_gap_report
 
+# SI1 imports are lazy (heavy deps) — only loaded when SI1 runs.
+
 
 def _print_final(conn):
     with conn.cursor() as cur:
@@ -35,8 +37,11 @@ def _print_final(conn):
 
 def main():
     ap = argparse.ArgumentParser(description="CLDV pipeline")
-    ap.add_argument("--only", choices=["si1", "si2", "si3", "scoring", "gap"],
+    ap.add_argument("--only", choices=["si1", "si1-score", "si2", "si3",
+                                       "scoring", "gap"],
                     help="run a single phase")
+    ap.add_argument("--quarters", type=int, default=8,
+                    help="SI1: number of recent quarters to collect (newest first)")
     args = ap.parse_args()
 
     if args.only == "gap":
@@ -54,8 +59,15 @@ def main():
         s, f, g = run_si3(conn, run_id)
         total += s + f; succ += s; fail += f; gaps += g
 
-    if args.only in (None, "si1"):
-        print("[SI1] corporate-displacement NLP — not yet implemented (Phase 2).")
+    if args.only in (None, "si1", "si1-score"):
+        from cldv_si1_score import run_si1_scoring
+        if args.only in (None, "si1"):
+            from cldv_si1_transcripts import run_si1_transcripts
+            ok, miss = run_si1_transcripts(conn, run_id, n_quarters=args.quarters)
+            total += ok + miss; succ += ok; fail += miss
+        res = run_si1_scoring(conn, run_id)
+        print(f"[SI1] {res}")
+
     if args.only in (None, "si2"):
         print("[SI2] labor-market signal — not yet implemented (Phase 3).")
 
