@@ -96,18 +96,29 @@ def run_si3(conn, run_id: str):
 
     succeeded = failed = gaps = 0
 
-    def _store(iso2, metric_key, label, value, unit, data_year, raw=None):
+    def _api_url(iso3, indicator, year):
+        # working URL that returns the exact value as JSON
+        return (f"{WB_BASE}/country/{iso3}/indicator/{indicator}"
+                f"?format=json&date={year}")
+
+    def _store(iso2, metric_key, label, value, unit, data_year, indicators, components):
+        """indicators: WB codes this metric derives from (primary first).
+        components: human-readable computation w/ the actual numbers used."""
         nonlocal succeeded
+        iso3 = COUNTRIES[iso2]["iso3"]
+        primary = indicators[0]
+        url = _api_url(iso3, primary, data_year)
+        raw = f"{components} | World Bank indicators: {', '.join(indicators)}"
         dp = make_metric_result(
             iso2, "SI3", metric_key, value, unit,
             f"{data_year}-12-31", "annual",
-            "World Bank WDI", _wb_url(IND.get("svc_exports", "")),
+            f"World Bank WDI ({primary})", url,
             "worldbank_api", CONFIDENCE["worldbank_api"],
             metric_label=label, raw_value=raw,
         )
         store_metric_datapoint(conn, dp, run_id)
-        log_attempt(conn, run_id, iso2, metric_key, "World Bank WDI", 1,
-                    "success", source_url=_wb_url(""))
+        log_attempt(conn, run_id, iso2, metric_key, f"World Bank WDI ({primary})",
+                    1, "success", source_url=url)
         succeeded += 1
 
     def _gap(iso2, metric_key, label, reason, severity="medium"):
@@ -133,7 +144,9 @@ def run_si3(conn, run_id: str):
             y = common[0]
             _store(iso2, "services_exports_pct_gdp",
                    "Services exports (% of GDP)",
-                   round(svc[y] / gdp[y] * 100, 4), "pct_gdp", y)
+                   round(svc[y] / gdp[y] * 100, 4), "pct_gdp", y,
+                   ["BX.GSR.NFSV.CD", "NY.GDP.MKTP.CD"],
+                   f"svc_exports={svc[y]:.4e} / GDP={gdp[y]:.4e} ({y})")
         else:
             _gap(iso2, "services_exports_pct_gdp", "Services exports (% of GDP)",
                  "No overlapping services-exports / GDP year")
@@ -144,7 +157,10 @@ def run_si3(conn, run_id: str):
         y0, v0, y1, v1 = _latest_two(percap)
         if y0 is not None:
             _store(iso2, "services_exports_per_capita",
-                   "Services exports per capita (USD)", round(v0, 2), "usd_per_capita", y0)
+                   "Services exports per capita (USD)", round(v0, 2),
+                   "usd_per_capita", y0,
+                   ["BX.GSR.NFSV.CD", "SP.POP.TOTL"],
+                   f"svc_exports={svc[y0]:.4e} / pop={pop[y0]:.0f} ({y0})")
         else:
             _gap(iso2, "services_exports_per_capita",
                  "Services exports per capita (USD)", "No services/population year")
@@ -154,7 +170,8 @@ def run_si3(conn, run_id: str):
             _store(iso2, "services_exports_per_capita_yoy",
                    "Services exports per capita, YoY % change",
                    round(yoy, 4), "pct_yoy", y0,
-                   raw=f"{y1}->{y0}: {v1:.1f}->{v0:.1f} USD/capita")
+                   ["BX.GSR.NFSV.CD", "SP.POP.TOTL"],
+                   f"per_capita {y1}->{y0}: {v1:.1f}->{v0:.1f} USD")
         else:
             _gap(iso2, "services_exports_per_capita_yoy",
                  "Services exports per capita, YoY % change",
@@ -166,7 +183,9 @@ def run_si3(conn, run_id: str):
         if iy0 is not None and iy1 is not None and iv1:
             _store(iso2, "it_bpo_export_growth_yoy",
                    "IT/BPO services export growth (YoY %)",
-                   round((iv0 - iv1) / iv1 * 100, 4), "pct_yoy", iy0)
+                   round((iv0 - iv1) / iv1 * 100, 4), "pct_yoy", iy0,
+                   ["BX.GSR.CMCP.ZS", "BX.GSR.NFSV.CD"],
+                   f"ICT%×svc_exports {iy1}->{iy0}: {iv1:.4e}->{iv0:.4e} USD")
         else:
             _gap(iso2, "it_bpo_export_growth_yoy",
                  "IT/BPO services export growth (YoY %)",
@@ -178,7 +197,9 @@ def run_si3(conn, run_id: str):
             y = bal_years[0]
             _store(iso2, "current_account_services_balance",
                    "Current-account services balance (USD)",
-                   round(svc[y] - imp[y], 2), "usd", y)
+                   round(svc[y] - imp[y], 2), "usd", y,
+                   ["BX.GSR.NFSV.CD", "BM.GSR.NFSV.CD"],
+                   f"exports={svc[y]:.4e} - imports={imp[y]:.4e} ({y})")
         else:
             _gap(iso2, "current_account_services_balance",
                  "Current-account services balance (USD)",

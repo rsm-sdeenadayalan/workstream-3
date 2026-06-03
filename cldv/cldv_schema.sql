@@ -75,10 +75,12 @@ CREATE TABLE IF NOT EXISTS cldv_si1_company_scores (
     strict_score    NUMERIC,                  -- −1..+1 (AI-attributed only)
     employees       INTEGER,                  -- weight for country aggregation
     source_name     TEXT,
+    source_url      TEXT,                     -- the transcript's working URL
     run_id          TEXT,
     scored_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (company, quarter)
 );
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS source_url TEXT;
 
 -- ── Operational: runs, attempt log, gaps ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS cldv_runs (
@@ -170,6 +172,18 @@ JOIN (SELECT run_id, MAX(scored_at) AS m FROM cldv_score_final GROUP BY run_id) 
   ON f.run_id = x.run_id
 WHERE f.scored_at = (SELECT MAX(scored_at) FROM cldv_score_final)
 ORDER BY f.rank;
+
+-- Provenance: every raw metric → its source(s). SI3 rows carry the working
+-- World Bank API URL directly; SI1 derived rows expose every contributing
+-- transcript URL via the unnest of cldv_si1_company_scores for that country.
+CREATE OR REPLACE VIEW v_cldv_provenance AS
+SELECT m.country_iso, m.sub_index, m.metric_key, m.metric_value,
+       m.source_name, m.source_url, m.raw_value,
+       cs.company AS si1_company, cs.quarter AS si1_quarter,
+       cs.source_url AS si1_transcript_url
+FROM cldv_raw_metrics m
+LEFT JOIN cldv_si1_company_scores cs
+       ON m.sub_index = 'SI1' AND cs.country_iso = m.country_iso;
 
 CREATE OR REPLACE VIEW v_cldv_raw_latest AS
 SELECT DISTINCT ON (country_iso, metric_key)

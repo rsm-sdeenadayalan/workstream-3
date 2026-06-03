@@ -39,7 +39,8 @@ def score_transcripts(conn, run_id: str) -> int:
     with conn.cursor() as cur:
         cur.execute(
             "SELECT company, country_iso, sector, quarter, transcript_text, "
-            "source_name FROM cldv_transcripts WHERE transcript_text IS NOT NULL"
+            "source_name, source_url FROM cldv_transcripts "
+            "WHERE transcript_text IS NOT NULL"
         )
         rows = cur.fetchall()
     if not rows:
@@ -50,22 +51,22 @@ def score_transcripts(conn, run_id: str) -> int:
     scored = score_corpus(docs)            # TF-IDF proxy across the whole corpus
 
     with conn.cursor() as cur:
-        for (company, iso, sector, quarter, _txt, sname), s in zip(rows, scored):
+        for (company, iso, sector, quarter, _txt, sname, surl), s in zip(rows, scored):
             cur.execute(
                 """
                 INSERT INTO cldv_si1_company_scores
                     (company, country_iso, sector, quarter, word_count, ai_density,
-                     proxy_score, strict_score, employees, source_name, run_id)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                     proxy_score, strict_score, employees, source_name, source_url, run_id)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (company, quarter) DO UPDATE SET
                     proxy_score=EXCLUDED.proxy_score, strict_score=EXCLUDED.strict_score,
                     ai_density=EXCLUDED.ai_density, word_count=EXCLUDED.word_count,
                     employees=EXCLUDED.employees, source_name=EXCLUDED.source_name,
-                    run_id=EXCLUDED.run_id, scored_at=now()
+                    source_url=EXCLUDED.source_url, run_id=EXCLUDED.run_id, scored_at=now()
                 """,
                 (company, iso, sector, quarter, s.get("word_count"),
                  s.get("ai_density"), s.get("proxy_score"), s.get("strict_score"),
-                 employees_for(company), sname, run_id),
+                 employees_for(company), sname, surl, run_id),
             )
     conn.commit()
     print(f"[SI1] scored {len(rows)} transcripts")
@@ -116,17 +117,38 @@ def _country_quarter_aggregates(conn):
     return aggregate_rows(rows)
 
 
+def _lineage(conn):
+    """{country: {quarter: [(company, transcript_url), …]}} — provenance for
+    each SI1 aggregate metric."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT country_iso, quarter, company, source_url "
+            "FROM cldv_si1_company_scores WHERE proxy_score IS NOT NULL"
+        )
+        rows = cur.fetchall()
+    out = {}
+    for iso, q, company, url in rows:
+        out.setdefault(iso, {}).setdefault(q, []).append((company, url))
+    return out
+
+
 def aggregate_and_write_metrics(conn, run_id: str):
     """Employment-weighted country aggregate → QoQ velocity → SI1 raw metrics."""
     agg = _country_quarter_aggregates(conn)
+    lineage = _lineage(conn)        # {country: {quarter: [(company, url), …]}}
     written = gaps = 0
 
-    def _store(iso, key, label, value, unit, q):
+    def _store(iso, key, label, value, unit, q, quarters_used):
         nonlocal written
+        contribs = [cu for qu in quarters_used for cu in lineage.get(iso, {}).get(qu, [])]
+        src_url = next((u for _c, u in contribs if u), None)
+        raw = (f"quarters={quarters_used}; employment-weighted over "
+               f"{len(contribs)} transcripts: "
+               + "; ".join(f"{c}({u})" for c, u in contribs))
         dp = make_metric_result(
             iso, "SI1", key, round(value, 4), unit, _q_end_date(q), "quarterly",
-            "CLDV NLP (earnings transcripts)", None, "nlp_derived", 0.70,
-            metric_label=label, raw_value=f"latest_quarter={q}")
+            f"CLDV NLP (employment-weighted, {len(contribs)} transcripts)",
+            src_url, "nlp_derived", 0.70, metric_label=label, raw_value=raw)
         store_metric_datapoint(conn, dp, run_id)
         written += 1
 
@@ -142,14 +164,14 @@ def aggregate_and_write_metrics(conn, run_id: str):
         latest = v["latest"]
         _store(iso, "corporate_displacement_level",
                "Corporate displacement level (latest quarter, proxy)",
-               v["level_proxy"], "score_-1_1", latest)
+               v["level_proxy"], "score_-1_1", latest, [latest])
         _store(iso, "corporate_displacement_strict",
                "Strict AI-attributed displacement level (latest quarter)",
-               v["level_strict"], "score_-1_1", latest)
+               v["level_strict"], "score_-1_1", latest, [latest])
         if v["velocity"] is not None:
             _store(iso, "corporate_displacement_velocity",
                    "Corporate displacement velocity (QoQ Δ, employment-weighted)",
-                   v["velocity"], "qoq_delta", latest)
+                   v["velocity"], "qoq_delta", latest, [v["prev"], latest])
         else:
             open_gap(conn, iso, "SI1", "corporate_displacement_velocity",
                      f"only 1 quarter ({latest}) — need ≥2 for QoQ velocity",
