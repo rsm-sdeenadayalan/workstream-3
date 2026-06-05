@@ -42,3 +42,8 @@ def test_parse_judge_rejects_garbage():
     assert _parse_judge("no json here") is None
     assert _parse_judge('{"justified": true}') is None   # missing judge_score
     assert _parse_judge("") is None
+
+
+def test_parse_judge_rejects_nonnumeric_score():
+    assert _parse_judge('{"judge_score": "abc", "justified": true}') is None
+    assert _parse_judge('{"judge_score": null, "justified": true}') is None

@@ -71,7 +71,11 @@ def _parse_judge(out):
         return None
     if d.get("judge_score") is None:
         return None
-    return {"score": max(-1.0, min(1.0, float(d["judge_score"]))),
+    try:
+        score = max(-1.0, min(1.0, float(d["judge_score"])))
+    except (ValueError, TypeError):
+        return None
+    return {"score": score,
             "justified": bool(d.get("justified")),
             "rationale": (d.get("rationale") or "")[:600]}
 
