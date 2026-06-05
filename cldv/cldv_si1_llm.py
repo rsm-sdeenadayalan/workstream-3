@@ -38,7 +38,7 @@ Distinguish management statements from analyst questions; distinguish AI replaci
 workers from AI augmenting workers or routine cost control.
 
 Return STRICT JSON, no prose:
-{{"displacement_score": <float -1..1>, "ai_attributed": <true|false>, "summary": "<1-2 sentence stance>"}}
+{{"displacement_score": <float -1..1>, "ai_attributed": <true|false>, "summary": "<1-2 sentence stance>", "evidence": "<exact sentence(s) quoted verbatim from the excerpts that justify the score; empty string if none>"}}
 
 Scale: +1 = explicit AI/automation-driven workforce reduction; 0 = neutral / mixed /
 insufficient signal; -1 = AI augmenting workers or net hiring.
@@ -72,7 +72,8 @@ def _parse(out):
         return None
     return {"score": max(-1.0, min(1.0, float(d["displacement_score"]))),
             "ai": bool(d.get("ai_attributed")),
-            "summary": (d.get("summary") or "")[:600]}
+            "summary": (d.get("summary") or "")[:600],
+            "evidence": (d.get("evidence") or "")[:1000]}
 
 
 def score_with_claude(client, company, quarter, text):
@@ -130,9 +131,10 @@ def run_llm_scoring(conn, run_id: str, force: bool = False) -> int:
                 with cconn.cursor() as cur:
                     cur.execute(
                         "UPDATE cldv_si1_company_scores SET llm_score=%s, "
-                        "llm_ai_attributed=%s, llm_summary=%s "
+                        "llm_ai_attributed=%s, llm_summary=%s, llm_evidence=%s "
                         "WHERE company=%s AND quarter=%s",
-                        (res["score"], res["ai"], res["summary"], company, quarter))
+                        (res["score"], res["ai"], res["summary"], res["evidence"],
+                         company, quarter))
                 cconn.commit()
                 with lock:
                     done[0] += 1
