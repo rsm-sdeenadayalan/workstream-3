@@ -37,8 +37,8 @@ def _print_final(conn):
 
 def main():
     ap = argparse.ArgumentParser(description="CLDV pipeline")
-    ap.add_argument("--only", choices=["si1", "si1-score", "si1-llm", "si2",
-                                       "si3", "scoring", "gap", "verify"],
+    ap.add_argument("--only", choices=["si1", "si1-score", "si1-llm", "si1-judge",
+                                       "si2", "si3", "scoring", "gap", "verify"],
                     help="run a single phase")
     ap.add_argument("--quarters", type=int, default=8,
                     help="SI1: number of recent quarters to collect (newest first)")
@@ -64,16 +64,19 @@ def main():
         s, f, g = run_si3(conn, run_id)
         total += s + f; succ += s; fail += f; gaps += g
 
-    if args.only in (None, "si1", "si1-score", "si1-llm"):
+    if args.only in (None, "si1", "si1-score", "si1-llm", "si1-judge"):
         from cldv_si1_score import score_transcripts, aggregate_and_write_metrics
         from cldv_si1_llm import run_llm_scoring
+        from cldv_si1_judge import run_llm_judge
         if args.only in (None, "si1"):
             from cldv_si1_transcripts import run_si1_transcripts
             ok, miss = run_si1_transcripts(conn, run_id, n_quarters=args.quarters)
             total += ok + miss; succ += ok; fail += miss
         if args.only in (None, "si1", "si1-score"):
             score_transcripts(conn, run_id)        # deterministic keyword baseline
-        run_llm_scoring(conn, run_id)              # Claude contextual score (primary)
+        if args.only in (None, "si1", "si1-score", "si1-llm"):
+            run_llm_scoring(conn, run_id)          # Claude contextual score (primary)
+        run_llm_judge(conn, run_id)                # independent judge (verification)
         w, g = aggregate_and_write_metrics(conn, run_id)
         print(f"[SI1] {w} metrics written, {g} gaps")
 
