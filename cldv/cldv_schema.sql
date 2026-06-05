@@ -86,6 +86,14 @@ ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_score NUMERIC;
 ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_ai_attributed BOOLEAN;
 ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_summary TEXT;
+-- LLM-as-judge ensemble (independent verification; replaces the human 2-reviewer step).
+-- llm_evidence: verbatim sentences the scorer based its score on (grounding).
+-- judge_*: a SECOND, independent model's re-score + justification verdict.
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS llm_evidence TEXT;
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS judge_score NUMERIC;     -- −1..+1, independent
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS judge_justified BOOLEAN; -- scorer score supported by its evidence?
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS judge_rationale TEXT;
+ALTER TABLE cldv_si1_company_scores ADD COLUMN IF NOT EXISTS judge_model TEXT;
 
 -- Latest reported employee headcount per company — dated + sourced (used as the
 -- employment weight for SI1 country aggregation).

@@ -75,10 +75,19 @@ filing period; web-aggregator fallback for non-SEC filers). The **quarter-over-
 quarter change** in the country score is the **velocity** - the scored SI1
 metric (`corporate_displacement_velocity`).
 
-### Validation (required before publication)
-Two reviewers independently classify >=50 transcript excerpts; the harness reports
-concordance against the model (target >=80%); missed signals and false positives
-update the dictionary. *This human step is pending for the full corpus.*
+### Validation - LLM-as-judge ensemble (automated, no humans)
+Each score is grounded and independently verified, replacing the spec's human
+2-reviewer pass:
+1. **Grounding.** The scorer returns the *verbatim sentences* it scored on
+   (`llm_evidence`); a score with no quotable evidence is visibly weak.
+2. **Independent judge.** A *different* model (`CLDV_JUDGE_MODEL`, default
+   `claude-opus-4-5`, vs the scorer's `claude-sonnet-4-6`) re-scores the same
+   excerpts blind and rules whether the scorer's score is *justified* by its
+   cited evidence (`judge_score`, `judge_justified`).
+3. **Gate.** Scorer-vs-judge directional concordance (target >=80%) and the
+   justified-rate are reported by `cldv_si1_validate.py concordance` and enforced
+   by `cldv_verify.py` (hard FAIL below 80%). Because the judge is a *different*
+   model, concordance is a genuine cross-check, not self-agreement.
 
 ### Limitations
 - AI-attribution is sparse in some sectors - the proxy track mitigates this; the

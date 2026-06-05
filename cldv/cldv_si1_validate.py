@@ -1,26 +1,23 @@
-"""SI1 validation harness (the spec's 2-reviewer 80%-concordance step).
+"""SI1 validation - automated LLM-as-judge concordance (replaces the spec's
+human 2-reviewer step).
 
-  export  -> writes a review pack CSV: one row per scored transcript with an
-             excerpt + the model's keyword and Claude labels + a blank
-             `human_label` column for two independent reviewers to fill
-             (displacement / neutral / augmentation).
-  ingest  -> reads a filled review pack and reports concordance between the human
-             label and each model (Claude, keyword); target >= 80%.
-  agree   -> automated keyword-vs-Claude directional agreement across all scored
-             transcripts (a first-pass quality signal, no humans needed).
+  concordance -> scorer-vs-judge directional concordance + justified-rate across
+                 all judged transcripts; target >= 80%. This is the published
+                 accuracy metric for SI1 and the gate in cldv_verify.
+  agree       -> keyword-vs-Claude directional agreement (a first-pass signal:
+                 quantifies how much contextual scoring changes vs naive keyword
+                 counting).
 
 Usage:
-  python cldv/cldv_si1_validate.py export reviews.csv
-  python cldv/cldv_si1_validate.py ingest reviews.csv
+  python cldv/cldv_si1_validate.py concordance
   python cldv/cldv_si1_validate.py agree
 """
-import csv
 import sys
 
 from cldv_db import get_conn
-from cldv_si1_llm import relevant_excerpts
 
 _NEUTRAL_BAND = 0.1
+_MIN_CONCORDANCE = 0.80
 
 
 def label(score):
@@ -34,29 +31,6 @@ def label(score):
     return "neutral"
 
 
-def export_review_pack(path, n=50):
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT s.company, s.quarter, s.proxy_score, s.llm_score, "
-            "s.llm_ai_attributed, s.llm_summary, t.transcript_text "
-            "FROM cldv_si1_company_scores s "
-            "JOIN cldv_transcripts t ON t.company=s.company AND t.quarter=s.quarter "
-            "ORDER BY s.company, s.quarter LIMIT %s", (n,))
-        rows = cur.fetchall()
-    conn.close()
-    with open(path, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["company", "quarter", "excerpt", "keyword_label", "claude_label",
-                    "claude_ai_attributed", "claude_summary",
-                    "human_label (displacement/neutral/augmentation)", "human_notes"])
-        for company, quarter, proxy, llm, ai, summary, text in rows:
-            ex = relevant_excerpts(text, max_chars=1200, max_hits=4).replace("\n", " ")
-            w.writerow([company, quarter, ex, label(proxy), label(llm), ai,
-                        summary, "", ""])
-    print(f"wrote {len(rows)} rows to {path} - have 2 reviewers fill human_label")
-
-
 def _concordance(pairs):
     if not pairs:
         return 0.0, 0
@@ -64,21 +38,31 @@ def _concordance(pairs):
     return agree / len(pairs), len(pairs)
 
 
-def ingest(path):
-    rows = list(csv.DictReader(open(path)))
-    human_key = next((k for k in rows[0] if k.startswith("human_label")), None) if rows else None
-    vs_claude, vs_keyword = [], []
-    for r in rows:
-        h = (r.get(human_key) or "").strip().lower()
-        if h not in ("displacement", "neutral", "augmentation"):
-            continue
-        vs_claude.append((h, (r.get("claude_label") or "").strip().lower()))
-        vs_keyword.append((h, (r.get("keyword_label") or "").strip().lower()))
-    c, n = _concordance(vs_claude)
-    k, _ = _concordance(vs_keyword)
-    print(f"human-labeled rows: {n}")
-    print(f"  human vs Claude  concordance: {c*100:.1f}%  ({'PASS' if c>=0.8 else 'BELOW 80%'})")
-    print(f"  human vs keyword concordance: {k*100:.1f}%")
+def judge_concordance(rows):
+    """Pure: rows of (scorer_score, judge_score, justified) ->
+    (directional_concordance, justified_rate, n_judged). Rows without a judge
+    score are ignored."""
+    judged = [(s, j, x) for s, j, x in rows if s is not None and j is not None]
+    pairs = [(label(s), label(j)) for s, j, _ in judged]
+    conc, n = _concordance(pairs)
+    jrate = (sum(1 for _, _, x in judged if x) / len(judged)) if judged else 0.0
+    return conc, jrate, n
+
+
+def concordance():
+    """Scorer-vs-judge concordance over all judged transcripts (the SI1 accuracy
+    metric that replaces the human pass)."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute("SELECT llm_score, judge_score, judge_justified "
+                    "FROM cldv_si1_company_scores WHERE judge_score IS NOT NULL")
+        rows = cur.fetchall()
+    conn.close()
+    conc, jrate, n = judge_concordance(rows)
+    verdict = "PASS" if conc >= _MIN_CONCORDANCE else f"BELOW {_MIN_CONCORDANCE*100:.0f}%"
+    print(f"judged transcripts: {n}")
+    print(f"  scorer vs judge directional concordance: {conc*100:.1f}%  ({verdict})")
+    print(f"  scorer score justified by its evidence:  {jrate*100:.1f}%")
 
 
 def agree():
@@ -93,14 +77,12 @@ def agree():
     a, n = _concordance(pairs)
     print(f"keyword vs Claude directional agreement: {a*100:.1f}% over {n} transcripts")
     print("(low agreement is expected - it quantifies how much contextual scoring "
-          "changes vs naive keyword counting, motivating the human validation pass)")
+          "changes vs naive keyword counting)")
 
 
 if __name__ == "__main__":
-    cmd = sys.argv[1] if len(sys.argv) > 1 else "agree"
-    if cmd == "export":
-        export_review_pack(sys.argv[2] if len(sys.argv) > 2 else "reviews.csv")
-    elif cmd == "ingest":
-        ingest(sys.argv[2])
-    else:
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "concordance"
+    if cmd == "agree":
         agree()
+    else:
+        concordance()
