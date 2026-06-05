@@ -47,3 +47,25 @@ def test_parse_judge_rejects_garbage():
 def test_parse_judge_rejects_nonnumeric_score():
     assert _parse_judge('{"judge_score": "abc", "justified": true}') is None
     assert _parse_judge('{"judge_score": null, "justified": true}') is None
+
+
+from cldv_si1_validate import judge_concordance
+
+
+def test_judge_concordance_full_agreement():
+    # both rows: scorer & judge same direction; both justified
+    rows = [(0.6, 0.5, True), (-0.4, -0.3, True)]
+    conc, jrate, n = judge_concordance(rows)
+    assert conc == 1.0 and jrate == 1.0 and n == 2
+
+
+def test_judge_concordance_split():
+    rows = [(0.6, -0.6, False), (0.5, 0.5, True)]   # disagree+unjustified, agree+justified
+    conc, jrate, n = judge_concordance(rows)
+    assert conc == 0.5 and jrate == 0.5 and n == 2
+
+
+def test_judge_concordance_skips_unjudged_rows():
+    rows = [(0.6, None, None), (0.5, 0.5, True)]     # first has no judge verdict
+    conc, jrate, n = judge_concordance(rows)
+    assert n == 1 and conc == 1.0 and jrate == 1.0
