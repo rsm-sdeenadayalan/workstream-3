@@ -1,10 +1,12 @@
 """CLDV pipeline orchestrator.
 
 Usage:
-    python run_cldv.py                # collect (SI3 + SI1/SI2 when built) + score
-    python run_cldv.py --only si3     # SI3 collection only
-    python run_cldv.py --only scoring # re-score from existing raw metrics
-    python run_cldv.py --only gap     # print the open-gap report
+    python run_cldv.py                  # collect (SI3 + SI1/SI2 when built) + score
+    python run_cldv.py --only si3       # SI3 collection only
+    python run_cldv.py --only si1-judge # independent LLM-judge pass over SI1 scores
+    python run_cldv.py --only scoring   # re-score from existing raw metrics
+    python run_cldv.py --only verify    # run the QA gate (incl. judge concordance)
+    python run_cldv.py --only gap       # print the open-gap report
 """
 import argparse
 import uuid
