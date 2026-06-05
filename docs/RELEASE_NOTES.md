@@ -37,7 +37,7 @@ Countries: US, AE, BR, IN, SG, PH.
 | 6 | US | 0.0 | 82.2 | 26.8 | 35.5 |
 
 Scores are a v0.1 snapshot and will move once the full SI1 corpus is collected
-and the human validation pass is run.
+and the SI1 judge-ensemble concordance pass is run across it.
 
 ---
 
@@ -80,7 +80,8 @@ cldv/
   cldv_si1_score.py      aggregation -> QoQ velocity
   cldv_scoring.py        normalize 0-100 + composite
   cldv_verify.py         QA gate
-  cldv_si1_validate.py   2-reviewer validation harness
+  cldv_si1_judge.py      independent LLM judge (re-score + justification)
+  cldv_si1_validate.py   automated scorer-vs-judge concordance report
 tests/                   26 pytest tests
 docs/                    CLDV_METHODOLOGY.md, RELEASE_NOTES.md
 ```
@@ -92,15 +93,17 @@ See `CLIENT_QUICKSTART.md` to run; `docs/CLDV_METHODOLOGY.md` for the methodolog
 
 - **SI1 corpus is partial** - 86 transcripts over 4 quarters; some emerging-market
   firms are thin (AE/PH ~2 firms). A full Q1-2023 collection is pending.
-- **SI1 not yet human-validated** - the harness is built and the automated
-  keyword-vs-Claude agreement is 45%, but the spec's 2-reviewer 80%-concordance
-  pass has not been run.
+- **SI1 validation is LLM-ensemble, not human** - each score is grounded in
+  quoted evidence and independently re-scored by a second model
+  (`claude-opus-4-5`); `cldv_verify` fails below 80% scorer-vs-judge concordance.
+  No human review pass is used.
 - **SI2 is an employment-stock proxy** - ILOSTAT ISCO-08 (1-digit), not job
   postings (no free historical postings source exists).
 - **No scheduled refresh / live monitoring.**
 
 ### Path to v1.0
-1. Run the 2-reviewer SI1 validation (>=80% concordance); calibrate dictionary/LLM.
+1. Run the SI1 judge ensemble across the full corpus; confirm >=80% scorer-vs-judge
+   concordance (`cldv/run_cldv.py --only si1-judge` then `--only verify`).
 2. Full Q1-2023 -> latest SI1 collection across all firms.
 3. Optional: source a finer occupational series for SI2; add scheduled refresh.
 

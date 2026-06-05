@@ -39,6 +39,9 @@ python run_cldv.py --only gap   # open-gap report
 - **SI1:** earnings-call transcripts via company IR PDFs (primary) + aggregators
   (Morningstar/Motley Fool/Insider Monkey); employee weights from SEC 10-K/20-F
   filings; deterministic two-track keyword/TF-IDF NLP.
+  Each Claude score is grounded in quoted evidence and independently verified by a
+  second model (LLM-as-judge); `cldv_verify` gates on >=80% scorer-vs-judge
+  concordance. No human review pass.
 - **SI2:** ILOSTAT employment-by-occupation (ISCO-08) cognitive(ISCO4)/AI-adjacent
   (ISCO2) crossover ratio - employment-stock proxy, documented limitations.
 

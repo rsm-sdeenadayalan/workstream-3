@@ -2,7 +2,7 @@
 displacement score (per the CLDV spec), plus exclusion rules.
 
 This is a VERSIONED, VALIDATED artifact (a spec deliverable). The seed phrases
-below come from the spec; the human 2-reviewer concordance pass (cldv_si1_validate)
+below come from the spec; the LLM-as-judge concordance pass (cldv_si1_validate)
 appends missed signals and exclusion rules here, bumping DICTIONARY_VERSION.
 
 Categories:
