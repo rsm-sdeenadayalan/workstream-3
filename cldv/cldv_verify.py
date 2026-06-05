@@ -95,6 +95,32 @@ def check_llm_coverage(cur):
               f"({total - scored} on keyword fallback)")
 
 
+_JUDGE_MIN_CONCORDANCE = 0.80
+
+
+def check_judge_concordance(cur):
+    """SI1 accuracy gate: an independent judge must agree with the scorer on
+    direction >= 80% (replaces the human 2-reviewer pass). FAIL below threshold;
+    WARN when judge coverage is incomplete."""
+    from cldv_si1_validate import judge_concordance
+    cur.execute("SELECT COUNT(llm_score), COUNT(judge_score) FROM cldv_si1_company_scores")
+    scored, judged = cur.fetchone()
+    if not scored:
+        return
+    if judged < scored:
+        _warn(f"SI1: {judged}/{scored} Claude-scored transcripts have a judge verdict")
+    if judged:
+        cur.execute("SELECT llm_score, judge_score, judge_justified "
+                    "FROM cldv_si1_company_scores WHERE judge_score IS NOT NULL")
+        conc, jrate, n = judge_concordance(cur.fetchall())
+        if conc < _JUDGE_MIN_CONCORDANCE:
+            _fail(f"SI1 scorer-vs-judge concordance {conc*100:.1f}% < "
+                  f"{_JUDGE_MIN_CONCORDANCE*100:.0f}% over {n} judged rows")
+        else:
+            _warn(f"SI1 scorer-vs-judge concordance {conc*100:.1f}% "
+                  f"(justified {jrate*100:.1f}%, {n} rows)")
+
+
 def run_verify() -> int:
     """Run all checks; print results; return process exit code (0 ok, 1 fail)."""
     _FAILS.clear()
@@ -107,6 +133,7 @@ def run_verify() -> int:
         check_coverage(cur)
         check_outliers(cur)
         check_llm_coverage(cur)
+        check_judge_concordance(cur)
     conn.close()
     for w in _WARNS:
         print(f"  WARN  {w}")
